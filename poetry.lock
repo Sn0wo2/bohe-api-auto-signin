@@ -143,18 +143,18 @@ test = ["charset_normalizer (>=3.3.2,<4.0)", "cryptography (>=42.0.5,<43.0)", "f
 
 [[package]]
 name = "linux-do-connect-token"
-version = "0.0.4"
+version = "0.1.0"
 description = "A helper library to authenticate with connect.linux.do and retrieve auth.session-token"
 optional = false
 python-versions = ">=3.12"
 groups = ["main"]
 files = [
-    {file = "linux_do_connect_token-0.0.4-py3-none-any.whl", hash = "sha256:9eb3184ad0be7e038fd7e238950e518d0b978a36725ae30f5595629ff70ff2a9"},
-    {file = "linux_do_connect_token-0.0.4.tar.gz", hash = "sha256:46c26d8bbad4714d6c9d26ca4c5889c1f34a3df5d34b115369d0990a2630d8b8"},
+    {file = "linux_do_connect_token-0.1.0-py3-none-any.whl", hash = "sha256:d6fbda3220c4b6d288d8f1795b896c59a89a5409f8f10f251478ba2d86557eeb"},
+    {file = "linux_do_connect_token-0.1.0.tar.gz", hash = "sha256:6c5d99e7d66c44c83525289ee87b52f9e219c36dff9228b39e4acb2778a1aba1"},
 ]
 
 [package.dependencies]
-curl-cffi = ">=0.14.0,<0.15.0"
+curl-cffi = "*"
 
 [[package]]
 name = "pycparser"
