@@ -9,7 +9,7 @@ license = { text = "MIT" }
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
-    "linux-do-connect-token (>=0.0.4)"
+    "linux-do-connect-token (>=0.1.0)"
 ]
 
 
