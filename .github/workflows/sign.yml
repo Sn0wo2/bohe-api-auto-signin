@@ -1,5 +1,4 @@
 name: Sign
-
 on:
   schedule:
     - cron: '0 0 * * *'
@@ -9,7 +8,6 @@ on:
         description: 'Current attempt count'
         required: false
         default: '1'
-
 jobs:
   sign:
     runs-on: ubuntu-latest
@@ -17,18 +15,14 @@ jobs:
       CURRENT_ATTEMPT: ${{ github.event.inputs.attempt || '1' }}
     steps:
       - uses: actions/checkout@v6
-
       - name: Set up Python
         uses: actions/setup-python@v6
         with:
           python-version: '3.14'
-
       - name: Install Poetry
         run: pip install poetry
-
       - name: Install dependencies
         run: poetry install --no-root
-
       - name: Run sign-in script
         id: run_script
         env:
@@ -36,24 +30,22 @@ jobs:
           LINUX_DO_CONNECT_TOKEN: ${{ secrets.LINUX_DO_CONNECT_TOKEN }}
           LINUX_DO_TOKEN: ${{ secrets.LINUX_DO_TOKEN }}
         run: poetry run python main.py
-
       - name: Update Tokens to Secrets
         if: always()
         env:
           GH_TOKEN: ${{ secrets.GH_PAT }}
           SYNC_REPOS: ${{ secrets.SYNC_REPOS }}
         run: |
-          if [ -f "data/token.json" ] && [ ! -z "$GH_TOKEN" ]; then
+          if [ -f ".data/token.json" ] && [ ! -z "$GH_TOKEN" ]; then
             echo "Token update detected, reading new tokens..."
-            BOHE_SIGN_TOKEN=$(poetry run python -c "import json; print(json.load(open('data/token.json')).get('bohe_sign_token', ''))")
-            LINUX_DO_CONNECT_TOKEN=$(poetry run python -c "import json; print(json.load(open('data/token.json')).get('linux_do_connect_token', ''))")
-            LINUX_DO_TOKEN=$(poetry run python -c "import json; print(json.load(open('data/token.json')).get('linux_do_token', ''))")
+            BOHE_SIGN_TOKEN=$(poetry run python -c "import json; print(json.load(open('.data/token.json')).get('bohe_sign_token', ''))")
+            LINUX_DO_CONNECT_TOKEN=$(poetry run python -c "import json; print(json.load(open('.data/token.json')).get('linux_do_connect_token', ''))")
+            LINUX_DO_TOKEN=$(poetry run python -c "import json; print(json.load(open('.data/token.json')).get('linux_do_token', ''))")
             
             echo "Updating current repository secrets..."
             [ ! -z "$BOHE_SIGN_TOKEN" ] && gh secret set BOHE_SIGN_TOKEN --body "$BOHE_SIGN_TOKEN"
             [ ! -z "$LINUX_DO_CONNECT_TOKEN" ] && gh secret set LINUX_DO_CONNECT_TOKEN --body "$LINUX_DO_CONNECT_TOKEN"
             [ ! -z "$LINUX_DO_TOKEN" ] && gh secret set LINUX_DO_TOKEN --body "$LINUX_DO_TOKEN"
-
             
             if [ ! -z "$SYNC_REPOS" ]; then
               IFS=',' read -ra ADDR <<< "$SYNC_REPOS"
@@ -68,7 +60,6 @@ jobs:
               done
             fi
           fi
-
       - name: Trigger New Action Run on Failure
         if: failure() && env.CURRENT_ATTEMPT < 3
         env:
