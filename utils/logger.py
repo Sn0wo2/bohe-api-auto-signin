@@ -4,14 +4,18 @@ import os
 import shutil
 import sys
 from datetime import datetime
+from utils.paths import DATA_DIR
 
+DEFAULT_FORMAT = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+DEBUG_FORMAT = '%(asctime)s - %(name)s - %(levelname)s - [%(filename)s:%(lineno)d] - %(message)s'
 
-def setup_logger(name: str = "bohe-api-auto-sign", log_dir: str = "./data/logs") -> logging.Logger:
+def setup_logger(name: str = "bohe-api-auto-sign", log_dir: str | None = None) -> logging.Logger:
+    log_dir = log_dir or os.path.join(DATA_DIR, "logs")
     os.makedirs(log_dir, exist_ok=True)
 
     logger = logging.getLogger(name)
-    logger.setLevel(logging.INFO)
-
+    log_level = getattr(logging, os.getenv("LOG_LEVEL", "INFO").upper(), logging.INFO)
+    logger.setLevel(log_level)
     if logger.handlers:
         return logger
 
@@ -28,10 +32,9 @@ def setup_logger(name: str = "bohe-api-auto-sign", log_dir: str = "./data/logs")
         os.remove(log_file)
 
     formatter = logging.Formatter(
-        '%(asctime)s - %(levelname)s - %(message)s',
+        DEBUG_FORMAT if log_level <= logging.DEBUG else DEFAULT_FORMAT,
         datefmt='%Y-%m-%d %H:%M:%S'
     )
-
     console_handler = logging.StreamHandler(sys.stdout)
     console_handler.setFormatter(formatter)
     logger.addHandler(console_handler)
