@@ -8,6 +8,10 @@ from linux_do_connect import IMPERSONATE, LinuxDoConnect
 
 from utils.logger import setup_logger
 
+class OAuthError(Exception):
+    def __init__(self, status_code: int, message: str = "OAuth approval failed"):
+        self.status_code = status_code
+        super().__init__(message)
 
 class BoheSignClient:
     BASE_URL = "https://up.x666.me"
@@ -81,9 +85,8 @@ class BoheSignClient:
             approve_url = await ld_auth.approve_oauth(auth_url)
         except ValueError as e:
             status_match = re.search(r"status=(\d+)", str(e))
-            if status_match and int(status_match.group(1)) == 429:
-                raise ValueError("OAuth approval rate limited (429)") from e
-            raise ValueError("OAuth approval failed") from e
+            status_code = int(status_match.group(1)) if status_match else 0
+            raise OAuthError(status_code) from e
 
         if not approve_url:
             raise ValueError("Failed to get approve_url")

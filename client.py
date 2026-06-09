@@ -5,7 +5,7 @@ from http import HTTPStatus
 
 from linux_do_connect import LinuxDoConnect
 
-from bohe_signin.client import BoheSignClient
+from bohe_signin.client import BoheSignClient, OAuthError
 from store.token import load_tokens, save_tokens
 from utils.logger import setup_logger
 
@@ -81,10 +81,9 @@ class BoheClient:
                 )
                 self.logger.info("Successfully obtained and saved auth_token")
                 return
-            except ValueError as e:
-                error_msg = str(e)
-                self.logger.debug(f"ValueError caught: {error_msg}")
-                if "rate limited" in error_msg.lower():
+            except OAuthError as e:
+                self.logger.warning(f"OAuth failed: status={e.status_code}")
+                if e.status_code == 429:
                     if attempt == 3:
                         self.logger.error("All 3 attempts failed (rate limited). Giving up.")
                         raise
@@ -94,7 +93,6 @@ class BoheClient:
                     )
                     await asyncio.sleep(backoff)
                 else:
-                    self.logger.error(f"OAuth approval failed: {error_msg}")
                     raise
             except Exception:
                 self.logger.warning(f"Bohe session refresh attempt {attempt} failed", exc_info=True)
