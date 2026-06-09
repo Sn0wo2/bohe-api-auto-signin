@@ -10,8 +10,8 @@ logger = setup_logger()
 async def main():
     try:
         async with BoheClient() as client:
-            sign_token = await client.get_valid_token()
-            await client.sign(sign_token)
+            await client.authenticate()
+            await client.signin()
     except Exception:
         logger.exception("Critical error in main")
         sys.exit(1)

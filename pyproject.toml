@@ -1,7 +1,7 @@
 [project]
-name = "bohe-api-auto-sign"
+name = "bohe-api-auto-signin"
 version = "0.0.0"
-description = "Auto sign bohe api"
+description = "Auto signin bohe api"
 authors = [
     { name = "Sn0wo2" }
 ]

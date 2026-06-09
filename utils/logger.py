@@ -11,7 +11,7 @@ DEFAULT_FORMAT = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 DEBUG_FORMAT = '%(asctime)s - %(name)s - %(levelname)s - [%(filename)s:%(lineno)d] - %(message)s'
 
 
-def setup_logger(name: str = "bohe-api-auto-sign", log_dir: str | None = None) -> logging.Logger:
+def setup_logger(name: str = "bohe-api-auto-signin", log_dir: str | None = None) -> logging.Logger:
     log_dir = log_dir or os.path.join(DATA_DIR, "logs")
 
     logger = logging.getLogger(name)
@@ -20,7 +20,7 @@ def setup_logger(name: str = "bohe-api-auto-sign", log_dir: str | None = None) -
     if logger.handlers:
         return logger
 
-    # Archive and handler setup only on first init (no handlers yet)
+
     os.makedirs(log_dir, exist_ok=True)
 
     log_file = os.path.join(log_dir, "latest.log")
