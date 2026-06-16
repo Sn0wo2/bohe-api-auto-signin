@@ -8,13 +8,9 @@ from bohe_signin.client import BoheSignClient, OAuthError
 from store.token import Account
 from utils.logger import setup_logger
 
-# 额度换算：500 quota = 1 次（与前端 wheel.js 的 QUOTA_PER_TIME 同源）
-QUOTA_PER_TIME = 500
-
-
+"""把额度同时格式化为 quota 与「次」，例如 150000 -> '150000quota(300times)'。"""
 def _fmt_quota(quota: int) -> str:
-    """把额度同时格式化为 quota 与「次」，例如 150000 -> '150000quota(300times)'。"""
-    return f"{quota}quota({quota // QUOTA_PER_TIME}times)"
+    return f"{quota}quota({quota // 500}times)"
 
 
 class BoheClient:
@@ -48,9 +44,9 @@ class BoheClient:
 
     async def authenticate(self) -> None:
         account = self.account
-        auth_token = account.bohe_session_cookies or None
-        connect_token = account.linux_do_connect_token or None
-        ld_token = account.linux_do_token or None
+        auth_token = account.bohe_session_cookies
+        connect_token = account.linux_do_connect_token
+        ld_token = account.linux_do_token
 
         self.logger.debug(f"{self._tag}Token state: auth_token={'set' if auth_token else 'empty'}, connect_token={'set' if connect_token else 'empty'}, ld_token={'set' if ld_token else 'empty'}")
 
@@ -134,9 +130,8 @@ class BoheClient:
                     month_days = data.get("month_days", 0)
                     milestone_bonus = data.get("milestone_bonus", 0)
                     pity_hit = data.get("pity_hit", 0)
-                    # pity_hit 为 1/2 表示本次命中必出大奖，对齐前端 showResult 的「🎉 必出大奖」提示
+                    # pity_hit 为 1/2 表示本次命中必出大奖
                     prefix = "JACKPOT! " if pity_hit in (1, 2) else ""
-                    # quota 与「次」同时展示（500 quota = 1 次，对齐前端换算口径）
                     log_parts = [f"{self._tag}Signin: {prefix}{data.get('label')} +{_fmt_quota(quota)}"]
                     if level:
                         log_parts.append(f"level={level}")
