@@ -33,3 +33,33 @@ Provide `linux_do_token` and let the program complete OAuth, verify the Bohe ses
 *   **Source**: HttpOnly cookies set by `up.x666.me` after the Linux.do OAuth callback.
 *   **How to get**: Normally you do not need to get them manually. The program stores them in `.data/token.json` after a successful OAuth flow.
 *   **Note**: The old LocalStorage token flow is no longer used by the current frontend API.
+
+---
+
+## Multi-Account Configuration
+
+Multiple accounts are configured through a single `BOHE_ACCOUNTS` value (a GitHub secret in CI, or an environment variable locally) containing a JSON array. Each entry needs at least a `name` and a `linux_do_token`; the program fills in `linux_do_connect_token` and `bohe_session_cookies` automatically after a successful run.
+
+```json
+[
+  { "name": "acc1", "linux_do_token": "xxxx" },
+  { "name": "acc2", "linux_do_token": "yyyy" }
+]
+```
+
+Set it as a single-line secret/env value, for example:
+
+```bash
+BOHE_ACCOUNTS='[{"name":"acc1","linux_do_token":"xxxx"},{"name":"acc2","linux_do_token":"yyyy"}]'
+```
+
+Accounts are processed sequentially (with a short randomized delay between them) to stay within the shared linux.do / Bohe rate limits.
+
+### Token persistence
+
+*   Locally, the full roster is written to `.data/token.json` under an `accounts` array.
+*   In GitHub Actions, the workflow reads `.data/token.json` after the run and writes the refreshed roster back to the `BOHE_ACCOUNTS` secret (and to any repositories listed in `SYNC_REPOS`).
+
+### Migration / backward compatibility
+
+If `BOHE_ACCOUNTS` is not set, the program falls back to the legacy single-account variables (`LINUX_DO_TOKEN`, `LINUX_DO_CONNECT_TOKEN`, `BOHE_SESSION_COOKIES`) and an existing single-account `token.json`, so previous setups keep working. After the first run on the new version it scaffolds the `accounts` array; switching to `BOHE_ACCOUNTS` is recommended for multi-account use.
