@@ -9,6 +9,14 @@ from bohe_signin.client import BoheSignClient, OAuthError
 from store.token import load_tokens, save_tokens
 from utils.logger import setup_logger
 
+# 额度换算：500 quota = 1 次（与前端 wheel.js 的 QUOTA_PER_TIME 同源）
+QUOTA_PER_TIME = 500
+
+
+def _fmt_quota(quota: int) -> str:
+    """把额度同时格式化为 quota 与「次」，例如 150000 -> '150000quota(300times)'。"""
+    return f"{quota}quota({quota // QUOTA_PER_TIME}times)"
+
 
 class BoheClient:
     def __init__(self):
@@ -109,6 +117,12 @@ class BoheClient:
                 if not status_data.get("can_spin"):
                     self.logger.info("Already checked in today (confirmed by server)")
                     return True
+                # 必出大奖进度（与前端能量槽同源的 pity_days_left 字段）：签到前提示距离保底还差几天
+                days_left = status_data.get("pity_days_left")
+                if isinstance(days_left, int) and 0 < days_left <= 1:
+                    self.logger.info("Pity ready: next spin guarantees the jackpot")
+                elif isinstance(days_left, int) and days_left > 0:
+                    self.logger.info(f"Pity progress: {days_left} day(s) left until guaranteed jackpot")
             self.logger.info("Ready to signin, performing spin...")
 
             r = await self.signin_client.signin()
@@ -117,14 +131,27 @@ class BoheClient:
                 data = r.json()
                 if data.get("success"):
                     balance = data.get("new_balance", 0)
-                    balance_times = balance // 500
+                    quota = data.get("quota", 0)
                     streak = data.get("streak_days", 0)
                     rank = data.get("today_rank", 0)
-                    log_parts = [f"Signin: {data.get('label')} +{data.get('quota')}quota"]
+                    level = data.get("level")
+                    month_days = data.get("month_days", 0)
+                    milestone_bonus = data.get("milestone_bonus", 0)
+                    pity_hit = data.get("pity_hit", 0)
+                    # pity_hit 为 1/2 表示本次命中必出大奖，对齐前端 showResult 的「🎉 必出大奖」提示
+                    prefix = "JACKPOT! " if pity_hit in (1, 2) else ""
+                    # quota 与「次」同时展示（500 quota = 1 次，对齐前端换算口径）
+                    log_parts = [f"Signin: {prefix}{data.get('label')} +{_fmt_quota(quota)}"]
+                    if level:
+                        log_parts.append(f"level={level}")
+                    if milestone_bonus:
+                        log_parts.append(f"milestone+{_fmt_quota(milestone_bonus)}")
                     if balance:
-                        log_parts.append(f"bal={balance_times}times")
+                        log_parts.append(f"bal={_fmt_quota(balance)}")
                     if streak:
                         log_parts.append(f"streak={streak}d")
+                    if month_days:
+                        log_parts.append(f"month={month_days}d")
                     if rank:
                         log_parts.append(f"rank=#{rank}")
                     self.logger.info(", ".join(log_parts))
