@@ -29,6 +29,7 @@ jobs:
       - name: Run signin script
         id: run_script
         env:
+          BOHE_ACCOUNTS: ${{ secrets.BOHE_ACCOUNTS }}
           BOHE_SESSION_COOKIES: ${{ secrets.BOHE_SESSION_COOKIES }}
           LINUX_DO_CONNECT_TOKEN: ${{ secrets.LINUX_DO_CONNECT_TOKEN }}
           LINUX_DO_TOKEN: ${{ secrets.LINUX_DO_TOKEN }}
@@ -41,25 +42,21 @@ jobs:
         run: |
           if [ -f ".data/token.json" ] && [ ! -z "$GH_TOKEN" ]; then
             echo "Token update detected, reading new tokens..."
-            BOHE_SESSION_COOKIES=$(poetry run python -c "import json; print(json.dumps(json.load(open('.data/token.json')).get('bohe_session_cookies', {}), ensure_ascii=False))")
-            LINUX_DO_CONNECT_TOKEN=$(poetry run python -c "import json; print(json.load(open('.data/token.json')).get('linux_do_connect_token', ''))")
-            LINUX_DO_TOKEN=$(poetry run python -c "import json; print(json.load(open('.data/token.json')).get('linux_do_token', ''))")
+            BOHE_ACCOUNTS=$(poetry run python -c "import json; print(json.dumps(json.load(open('.data/token.json')).get('accounts', []), ensure_ascii=False))")
 
-            echo "Updating current repository secrets..."
-            [ "$BOHE_SESSION_COOKIES" != "{}" ] && gh secret set BOHE_SESSION_COOKIES --body "$BOHE_SESSION_COOKIES"
-            [ ! -z "$LINUX_DO_CONNECT_TOKEN" ] && gh secret set LINUX_DO_CONNECT_TOKEN --body "$LINUX_DO_CONNECT_TOKEN"
-            [ ! -z "$LINUX_DO_TOKEN" ] && gh secret set LINUX_DO_TOKEN --body "$LINUX_DO_TOKEN"
+            if [ "$BOHE_ACCOUNTS" != "[]" ]; then
+              echo "Updating current repository secrets..."
+              gh secret set BOHE_ACCOUNTS --body "$BOHE_ACCOUNTS"
 
-            if [ ! -z "$SYNC_REPOS" ]; then
-              IFS=',' read -ra ADDR <<< "$SYNC_REPOS"
-              for repo in "${ADDR[@]}"; do
-                repo=$(echo $repo | xargs)
-                if [ ! -z "$repo" ]; then
-                  echo "Syncing tokens to remote repository: $repo..."
-                  [ "$BOHE_SESSION_COOKIES" != "{}" ] && gh secret set BOHE_SESSION_COOKIES --repo "$repo" --body "$BOHE_SESSION_COOKIES"
-                  [ ! -z "$LINUX_DO_CONNECT_TOKEN" ] && gh secret set LINUX_DO_CONNECT_TOKEN --repo "$repo" --body "$LINUX_DO_CONNECT_TOKEN"
-                  [ ! -z "$LINUX_DO_TOKEN" ] && gh secret set LINUX_DO_TOKEN --repo "$repo" --body "$LINUX_DO_TOKEN"
-                fi
-              done
+              if [ ! -z "$SYNC_REPOS" ]; then
+                IFS=',' read -ra ADDR <<< "$SYNC_REPOS"
+                for repo in "${ADDR[@]}"; do
+                  repo=$(echo $repo | xargs)
+                  if [ ! -z "$repo" ]; then
+                    echo "Syncing tokens to remote repository: $repo..."
+                    gh secret set BOHE_ACCOUNTS --repo "$repo" --body "$BOHE_ACCOUNTS"
+                  fi
+                done
+              fi
             fi
           fi
