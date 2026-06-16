@@ -23,9 +23,6 @@ class Account:
     def to_dict(self) -> dict[str, str]:
         return {"name": self.name, **{key: getattr(self, key) for key in _TOKEN_KEYS}}
 
-    def has_credentials(self) -> bool:
-        return any(getattr(self, key) for key in _TOKEN_KEYS)
-
 
 def _str(value: object) -> str:
     return value if isinstance(value, str) and value else ""
@@ -38,6 +35,16 @@ def _parse_account(raw: dict, default_name: str) -> Account:
     )
 
 
+def _parse_roster(items: object) -> list[Account]:
+    if not isinstance(items, list):
+        return []
+    return [
+        _parse_account(item, f"account{i + 1}")
+        for i, item in enumerate(items)
+        if isinstance(item, dict)
+    ]
+
+
 def _accounts_from_env() -> list[Account] | None:
     raw = os.getenv("BOHE_ACCOUNTS")
     if not raw:
@@ -46,13 +53,7 @@ def _accounts_from_env() -> list[Account] | None:
         data = json.loads(raw)
     except json.JSONDecodeError:
         return None
-    if not isinstance(data, list):
-        return None
-    accounts = [
-        _parse_account(item, f"account{i + 1}")
-        for i, item in enumerate(data)
-        if isinstance(item, dict)
-    ]
+    accounts = _parse_roster(data)
     return accounts or None
 
 
@@ -64,32 +65,9 @@ def _accounts_from_file() -> list[Account]:
             raw = json.load(f)
     except (json.JSONDecodeError, OSError):
         return []
-
     if not isinstance(raw, dict):
         return []
-
-    if isinstance(raw.get("accounts"), list):
-        return [
-            _parse_account(item, f"account{i + 1}")
-            for i, item in enumerate(raw["accounts"])
-            if isinstance(item, dict)
-        ]
-
-    # Legacy single-account shape: tokens stored as top-level keys.
-    account = _parse_account(raw, "default")
-    return [account] if account.has_credentials() else []
-
-
-def _apply_legacy_env(account: Account) -> None:
-    env_cookies = os.getenv("BOHE_SESSION_COOKIES")
-    if env_cookies:
-        account.bohe_session_cookies = env_cookies
-    env_connect = os.getenv("LINUX_DO_CONNECT_TOKEN")
-    if env_connect:
-        account.linux_do_connect_token = env_connect
-    env_ld = os.getenv("LINUX_DO_TOKEN")
-    if env_ld:
-        account.linux_do_token = env_ld
+    return _parse_roster(raw.get("accounts"))
 
 
 def _write_accounts(accounts: list[Account]) -> None:
@@ -100,25 +78,17 @@ def _write_accounts(accounts: list[Account]) -> None:
 
 
 def load_accounts() -> list[Account]:
-    """Resolve the account roster, in priority order, from the BOHE_ACCOUNTS
-    JSON env var, the token file, or the legacy single-account env vars."""
+    """Resolve the account roster from the BOHE_ACCOUNTS JSON env var,
+    falling back to the token file's `accounts` array."""
     env_accounts = _accounts_from_env()
     if env_accounts is not None:
         return env_accounts
 
     accounts = _accounts_from_file()
     if not accounts:
-        # No roster yet: fall back to the legacy single-account env vars so
-        # existing setups keep working, and scaffold an empty token file.
-        account = Account(name="default")
-        _apply_legacy_env(account)
-        accounts = [account]
-        _write_accounts(accounts)
-        return accounts
-
-    # Preserve legacy behaviour: a lone account can still be overridden by env.
-    if len(accounts) == 1:
-        _apply_legacy_env(accounts[0])
+        # Nothing configured yet: scaffold an empty token file so the
+        # expected `accounts` shape is discoverable.
+        _write_accounts([])
     return accounts
 
 

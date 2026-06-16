@@ -30,9 +30,6 @@ jobs:
         id: run_script
         env:
           BOHE_ACCOUNTS: ${{ secrets.BOHE_ACCOUNTS }}
-          BOHE_SESSION_COOKIES: ${{ secrets.BOHE_SESSION_COOKIES }}
-          LINUX_DO_CONNECT_TOKEN: ${{ secrets.LINUX_DO_CONNECT_TOKEN }}
-          LINUX_DO_TOKEN: ${{ secrets.LINUX_DO_TOKEN }}
         run: poetry run python main.py
       - name: Update Tokens to Secrets
         if: always()

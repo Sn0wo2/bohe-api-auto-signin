@@ -57,9 +57,24 @@ Accounts are processed sequentially (with a short randomized delay between them)
 
 ### Token persistence
 
-*   Locally, the full roster is written to `.data/token.json` under an `accounts` array.
+The roster has exactly two sources, in priority order:
+
+1.  The `BOHE_ACCOUNTS` JSON env var / secret.
+2.  The `accounts` array in `.data/token.json`.
+
+*   Locally, the refreshed roster is written back to `.data/token.json` under the `accounts` array.
 *   In GitHub Actions, the workflow reads `.data/token.json` after the run and writes the refreshed roster back to the `BOHE_ACCOUNTS` secret (and to any repositories listed in `SYNC_REPOS`).
 
-### Migration / backward compatibility
+### Migration from the single-account version
 
-If `BOHE_ACCOUNTS` is not set, the program falls back to the legacy single-account variables (`LINUX_DO_TOKEN`, `LINUX_DO_CONNECT_TOKEN`, `BOHE_SESSION_COOKIES`) and an existing single-account `token.json`, so previous setups keep working. After the first run on the new version it scaffolds the `accounts` array; switching to `BOHE_ACCOUNTS` is recommended for multi-account use.
+The legacy single-account variables (`LINUX_DO_TOKEN`, `LINUX_DO_CONNECT_TOKEN`, `BOHE_SESSION_COOKIES`) and the old flat `token.json` shape are **no longer supported**. To migrate:
+
+*   **Local `.data/token.json`** — wrap your existing flat object in an `accounts` array and give it a `name`:
+
+    ```json
+    { "accounts": [ { "name": "default", "linux_do_token": "xxxx", "linux_do_connect_token": "...", "bohe_session_cookies": "..." } ] }
+    ```
+
+*   **Environment / CI** — set a single `BOHE_ACCOUNTS` secret (JSON array) as shown above and remove the old `LINUX_DO_TOKEN` / `LINUX_DO_CONNECT_TOKEN` / `BOHE_SESSION_COOKIES` secrets.
+
+If nothing is configured, the program scaffolds an empty `accounts` array in `.data/token.json` for you to fill in.
