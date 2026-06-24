@@ -15,22 +15,20 @@ _TOKEN_KEYS = (
 
 @dataclass
 class Account:
-    name: str = "default"
     bohe_session_cookies: str = ""
     linux_do_connect_token: str = ""
     linux_do_token: str = ""
 
     def to_dict(self) -> dict[str, str]:
-        return {"name": self.name, **{key: getattr(self, key) for key in _TOKEN_KEYS}}
+        return {key: getattr(self, key) for key in _TOKEN_KEYS}
 
 
 def _str(value: object) -> str:
     return value if isinstance(value, str) and value else ""
 
 
-def _parse_account(raw: dict, default_name: str) -> Account:
+def _parse_account(raw: dict) -> Account:
     return Account(
-        name=_str(raw.get("name")) or default_name,
         **{key: _str(raw.get(key)) for key in _TOKEN_KEYS},
     )
 
@@ -39,8 +37,8 @@ def _parse_roster(items: object) -> list[Account]:
     if not isinstance(items, list):
         return []
     return [
-        _parse_account(item, f"account{i + 1}")
-        for i, item in enumerate(items)
+        _parse_account(item)
+        for item in items
         if isinstance(item, dict)
     ]
 
@@ -58,8 +56,6 @@ def _accounts_from_env() -> list[Account] | None:
 
 
 def _accounts_from_file() -> list[Account]:
-    if not os.path.exists(TOKEN_FILE):
-        return []
     try:
         with open(TOKEN_FILE, "r", encoding="utf-8") as f:
             raw = json.load(f)
@@ -93,5 +89,4 @@ def load_accounts() -> list[Account]:
 
 
 def save_accounts(accounts: list[Account]) -> None:
-    """Persist the full account roster to the token file."""
     _write_accounts(accounts)

@@ -14,14 +14,15 @@ def _fmt_quota(quota: int) -> str:
 
 
 class BoheClient:
-    def __init__(self, account: Account):
+    def __init__(self, account: Account, index: int = 0):
         self.account = account
+        self.index = index
         self.logger = setup_logger()
         self.signin_client = BoheSignClient()
 
     @property
     def _tag(self) -> str:
-        return f"[{self.account.name}] "
+        return f"[account{self.index + 1}] "
 
     async def __aenter__(self):
         await self.signin_client.__aenter__()
@@ -48,7 +49,8 @@ class BoheClient:
         connect_token = account.linux_do_connect_token
         ld_token = account.linux_do_token
 
-        self.logger.debug(f"{self._tag}Token state: auth_token={'set' if auth_token else 'empty'}, connect_token={'set' if connect_token else 'empty'}, ld_token={'set' if ld_token else 'empty'}")
+        self.logger.debug(
+            f"{self._tag}Token state: auth_token={'set' if auth_token else 'empty'}, connect_token={'set' if connect_token else 'empty'}, ld_token={'set' if ld_token else 'empty'}")
 
         if auth_token:
             self.logger.info(f"{self._tag}Verifying existing Bohe session (auth_token)...")

@@ -3,32 +3,28 @@ import random
 import sys
 
 from client import BoheClient
-from store.token import Account, load_accounts, save_accounts
+from store.token import load_accounts, save_accounts
 from utils.logger import setup_logger
 
 logger = setup_logger()
-
-
-async def _process_account(account: Account) -> bool:
-    async with BoheClient(account) as client:
-        await client.authenticate()
-        return await client.signin()
 
 
 async def main():
     accounts = load_accounts()
     logger.info(f"Loaded {len(accounts)} account(s)")
 
-    results: list[tuple[str, bool]] = []
+    results: list[tuple[int, bool]] = []
     try:
         for index, account in enumerate(accounts):
-            logger.info(f"[{account.name}] Processing account {index + 1}/{len(accounts)}")
+            logger.info(f"[account{index + 1}] Processing account {index + 1}/{len(accounts)}")
             try:
-                ok = await _process_account(account)
+                async with BoheClient(account, index) as client:
+                    await client.authenticate()
+                    ok = await client.signin()
             except Exception:
-                logger.exception(f"[{account.name}] Account processing failed")
+                logger.exception(f"[account{index + 1}] Account processing failed")
                 ok = False
-            results.append((account.name, ok))
+            results.append((index, ok))
 
             if index < len(accounts) - 1:
                 delay = random.uniform(5, 20)
@@ -38,11 +34,11 @@ async def main():
         # Persist refreshed cookies/tokens even on partial progress.
         save_accounts(accounts)
 
-    succeeded = [name for name, ok in results if ok]
-    failed = [name for name, ok in results if not ok]
+    succeeded = [idx for idx, ok in results if ok]
+    failed = [idx for idx, ok in results if not ok]
     logger.info(f"Done: {len(succeeded)} succeeded, {len(failed)} failed")
     if failed:
-        logger.warning(f"Failed accounts: {', '.join(failed)}")
+        logger.warning(f"Failed accounts: {', '.join(f'account{idx + 1}' for idx in failed)}")
     if not succeeded:
         sys.exit(1)
 
