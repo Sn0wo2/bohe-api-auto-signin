@@ -1,12 +1,3 @@
-"""QingLong entry point for Bohe signin — optional, self-contained, zero changes to main.py.
-
-Cron:  0 0 * * *  task <repo>/qinglong/runner.py
-
-Auto-detects a QingLong runtime (QL_DIR / QL_BRANCH / the /ql tree) and pushes a
-run summary through QingLong's own notifier. Anywhere else it just runs main.py.
-Force on/off with BOHE_QL_NOTIFY=1/0.
-"""
-
 import os
 import sys
 
@@ -72,8 +63,8 @@ def run() -> int:
     if notify:
         log = buf.getvalue() or "(no log output)"
         m = re.search(r"Done:\s*(\d+)\s+succeeded,\s*(\d+)\s+failed", log)
-        title = (f"🌿 Bohe 签到 ✅{m.group(1)} ❌{m.group(2)}" if m
-                 else "🌿 Bohe 签到完成" if code == 0 else "🌿 Bohe 签到 ❌")
+        title = (f"🌿 薄荷签到 ✅{m.group(1)} ❌{m.group(2)}" if m
+                 else "🌿 薄荷签到完成" if code == 0 else "🌿 薄荷签到 ❌")
         _push(title, log)
 
     return code
