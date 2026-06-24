@@ -7,10 +7,12 @@ from linux_do_connect import IMPERSONATE, LinuxDoConnect
 
 from utils.logger import setup_logger
 
+
 class OAuthError(Exception):
     def __init__(self, status_code: int, message: str = "OAuth approval failed"):
         self.status_code = status_code
         super().__init__(message)
+
 
 class BoheSignClient:
     BASE_URL = "https://up.x666.me"

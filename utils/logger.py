@@ -20,7 +20,6 @@ def setup_logger(name: str = "bohe-api-auto-signin", log_dir: str | None = None)
     if logger.handlers:
         return logger
 
-
     os.makedirs(log_dir, exist_ok=True)
 
     log_file = os.path.join(log_dir, "latest.log")
