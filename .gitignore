@@ -208,8 +208,10 @@ __marimo__/
 
 # bohe-api-auto-sign
 .data/
+dumps/
 
-# omo
+# agents
 .opencode/
 .sisyphus/
 .omo/
+.claude/
