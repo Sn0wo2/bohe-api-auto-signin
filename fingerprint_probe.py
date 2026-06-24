@@ -1,9 +1,11 @@
-import asyncio, os
+import asyncio
+import os
+from typing import get_args
+
 from curl_cffi import requests
 from curl_cffi.requests.session import BrowserTypeLiteral
 from linux_do_connect import LinuxDoConnect, CONNECT_KEY
 
-from typing import get_args
 FINGERPRINTS = list(get_args(BrowserTypeLiteral))
 
 
@@ -43,5 +45,6 @@ async def test():
     print('=' * 25)
     for fp, bare_label, authed_label in results:
         print(f'  {fp:22s} bare={bare_label}  authed={authed_label}')
+
 
 asyncio.run(test())
