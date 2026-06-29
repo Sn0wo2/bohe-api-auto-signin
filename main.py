@@ -16,11 +16,13 @@ async def main():
     results: list[tuple[int, bool]] = []
     try:
         for index, account in enumerate(accounts):
-            logger.info(f"[account{index + 1}] Processing account {index + 1}/{len(accounts)}")
+            logger.info(
+                f"[account{index + 1}] Processing account {index + 1}/{len(accounts)}"
+            )
             try:
-                async with BoheClient(account, index) as client:
-                    await client.authenticate()
-                    ok = await client.signin()
+                client = BoheClient(account, index)
+                await client.authenticate()
+                ok = await client.signin()
             except Exception:
                 logger.exception(f"[account{index + 1}] Account processing failed")
                 ok = False
@@ -38,7 +40,9 @@ async def main():
     failed = [idx for idx, ok in results if not ok]
     logger.info(f"Done: {len(succeeded)} succeeded, {len(failed)} failed")
     if failed:
-        logger.warning(f"Failed accounts: {', '.join(f'account{idx + 1}' for idx in failed)}")
+        logger.warning(
+            f"Failed accounts: {', '.join(f'account{idx + 1}' for idx in failed)}"
+        )
     if not succeeded:
         sys.exit(1)
 

@@ -24,50 +24,57 @@ class BoheClient:
     def _tag(self) -> str:
         return f"[account{self.index + 1}] "
 
-    async def __aenter__(self):
-        await self.signin_client.__aenter__()
-        return self
-
-    async def __aexit__(self, *exc):
-        await self.signin_client.__aexit__(*exc)
-
     async def _get_connect_token(self, ld_token: str | None) -> tuple[str, str | None]:
         if not ld_token:
             raise ValueError("linux_do_token is required to refresh connect token")
-        self.logger.info(f"{self._tag}Refreshing connect token with linux_do_token (len={len(ld_token)})")
+        self.logger.info(
+            f"{self._tag}Refreshing connect token with linux_do_token (len={len(ld_token)})"
+        )
         connect = LinuxDoConnect(token=ld_token)
         await connect.login()
         self.logger.info(f"{self._tag}Successfully logged in to linux.do")
 
         connect_token, _ = await connect.get_connect_token()
-        self.logger.info(f"{self._tag}Successfully obtained connect token from linux.do")
+        self.logger.info(
+            f"{self._tag}Successfully obtained connect token from linux.do"
+        )
         return connect_token, ld_token
 
     async def authenticate(self) -> None:
-        account = self.account
-        auth_token = account.bohe_session_cookies
-        connect_token = account.linux_do_connect_token
-        ld_token = account.linux_do_token
+        auth_token = self.account.bohe_session_cookies
+        connect_token = self.account.linux_do_connect_token
+        ld_token = self.account.linux_do_token
 
         self.logger.debug(
-            f"{self._tag}Token state: auth_token={'set' if auth_token else 'empty'}, connect_token={'set' if connect_token else 'empty'}, ld_token={'set' if ld_token else 'empty'}")
+            f"{self._tag}Token state: auth_token={'set' if auth_token else 'empty'}, connect_token={'set' if connect_token else 'empty'}, ld_token={'set' if ld_token else 'empty'}"
+        )
 
         if auth_token:
-            self.logger.info(f"{self._tag}Verifying existing Bohe session (auth_token)...")
+            self.logger.info(
+                f"{self._tag}Verifying existing Bohe session (auth_token)..."
+            )
             self.signin_client.import_session_cookies(auth_token)
             valid, _ = await self.signin_client.verify_session()
             if valid:
-                self.logger.info(f"{self._tag}Existing Bohe session cookies are still valid")
+                self.logger.info(
+                    f"{self._tag}Existing Bohe session cookies are still valid"
+                )
                 return
-            self.logger.warning(f"{self._tag}Stored auth_token is invalid/expired, attempting to refresh...")
+            self.logger.warning(
+                f"{self._tag}Stored auth_token is invalid/expired, attempting to refresh..."
+            )
 
         for attempt in range(1, 4):
             try:
                 if attempt > 1:
-                    self.logger.info(f"{self._tag}Retrying Bohe session refresh (attempt {attempt}/3)...")
+                    self.logger.info(
+                        f"{self._tag}Retrying Bohe session refresh (attempt {attempt}/3)..."
+                    )
 
                 if not connect_token:
-                    self.logger.debug(f"{self._tag}No connect_token available, refreshing from linux_do_token")
+                    self.logger.debug(
+                        f"{self._tag}No connect_token available, refreshing from linux_do_token"
+                    )
                     connect_token, ld_token = await self._get_connect_token(ld_token)
                 else:
                     self.logger.debug(f"{self._tag}Reusing existing connect_token")
@@ -78,18 +85,22 @@ class BoheClient:
                 if not bohe_session_cookies:
                     raise RuntimeError("Server returned no Bohe session cookies")
 
-                account.bohe_session_cookies = bohe_session_cookies
-                account.linux_do_connect_token = connect_token or ""
-                account.linux_do_token = ld_token or ""
+                self.account.bohe_session_cookies = bohe_session_cookies
+                self.account.linux_do_connect_token = connect_token or ""
+                self.account.linux_do_token = ld_token or ""
                 self.logger.info(f"{self._tag}Successfully obtained auth_token")
                 return
             except OAuthError as e:
                 self.logger.warning(f"{self._tag}OAuth failed: status={e.status_code}")
                 if e.status_code == 429:
                     if attempt == 3:
-                        self.logger.error(f"{self._tag}All 3 attempts failed (rate limited). Giving up.")
+                        self.logger.error(
+                            f"{self._tag}All 3 attempts failed (rate limited). Giving up."
+                        )
                         raise
-                    backoff = min(600, 60 * (2 ** (attempt - 1)) + random.uniform(0, 30))
+                    backoff = min(
+                        600, 60 * (2 ** (attempt - 1)) + random.uniform(0, 30)
+                    )
                     self.logger.warning(
                         f"{self._tag}Rate limited on attempt {attempt}. Backing off {backoff:.0f}s before retry..."
                     )
@@ -97,9 +108,14 @@ class BoheClient:
                 else:
                     raise
             except Exception:
-                self.logger.warning(f"{self._tag}Bohe session refresh attempt {attempt} failed", exc_info=True)
+                self.logger.warning(
+                    f"{self._tag}Bohe session refresh attempt {attempt} failed",
+                    exc_info=True,
+                )
                 if attempt == 3:
-                    self.logger.error(f"{self._tag}All 3 attempts to refresh Bohe session failed.")
+                    self.logger.error(
+                        f"{self._tag}All 3 attempts to refresh Bohe session failed."
+                    )
                     raise
 
     async def signin(self) -> bool:
@@ -109,14 +125,20 @@ class BoheClient:
             if status_r.status_code == HTTPStatus.OK:
                 status_data = status_r.json()
                 if not status_data.get("can_spin"):
-                    self.logger.info(f"{self._tag}Already checked in today (confirmed by server)")
+                    self.logger.info(
+                        f"{self._tag}Already checked in today (confirmed by server)"
+                    )
                     return True
                 # 必出大奖进度（与前端能量槽同源的 pity_days_left 字段）：签到前提示距离保底还差几天
                 days_left = status_data.get("pity_days_left")
                 if isinstance(days_left, int) and 0 < days_left <= 1:
-                    self.logger.info(f"{self._tag}Pity ready: next spin guarantees the jackpot")
+                    self.logger.info(
+                        f"{self._tag}Pity ready: next spin guarantees the jackpot"
+                    )
                 elif isinstance(days_left, int) and days_left > 0:
-                    self.logger.info(f"{self._tag}Pity progress: {days_left} day(s) left until guaranteed jackpot")
+                    self.logger.info(
+                        f"{self._tag}Pity progress: {days_left} day(s) left until guaranteed jackpot"
+                    )
             self.logger.info(f"{self._tag}Ready to signin, performing spin...")
 
             r = await self.signin_client.signin()
@@ -134,7 +156,9 @@ class BoheClient:
                     pity_hit = data.get("pity_hit", 0)
                     # pity_hit 为 1/2 表示本次命中必出大奖
                     prefix = "JACKPOT! " if pity_hit in (1, 2) else ""
-                    log_parts = [f"{self._tag}Signin: {prefix}{data.get('label')} +{_fmt_quota(quota)}"]
+                    log_parts = [
+                        f"{self._tag}Signin: {prefix}{data.get('label')} +{_fmt_quota(quota)}"
+                    ]
                     if level:
                         log_parts.append(f"level={level}")
                     if milestone_bonus:
