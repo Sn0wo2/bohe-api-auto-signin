@@ -48,7 +48,9 @@ def run() -> int:
     if notify:
         # main.py configures the logger at import; attach AFTER so it stays intact.
         handler = logging.StreamHandler(buf)
-        handler.setFormatter(logging.Formatter("%(asctime)s %(levelname)s %(message)s", "%H:%M:%S"))
+        handler.setFormatter(
+            logging.Formatter("%(asctime)s %(levelname)s %(message)s", "%H:%M:%S")
+        )
         logging.getLogger(_LOGGER).addHandler(handler)
 
     code = 0
@@ -63,8 +65,11 @@ def run() -> int:
     if notify:
         log = buf.getvalue() or "(no log output)"
         m = re.search(r"Done:\s*(\d+)\s+succeeded,\s*(\d+)\s+failed", log)
-        title = (f"🌿 薄荷签到 ✅{m.group(1)} ❌{m.group(2)}" if m
-                 else "🌿 薄荷签到完成" if code == 0 else "🌿 薄荷签到 ❌")
+        title = (
+            f"🌿 薄荷签到 ✅{m.group(1)} ❌{m.group(2)}"
+            if m
+            else "🌿 薄荷签到完成" if code == 0 else "🌿 薄荷签到 ❌"
+        )
         _push(title, log)
 
     return code
