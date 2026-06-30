@@ -10,13 +10,11 @@ TOKEN_FILE = os.path.join(DATA_DIR, "token.json")
 
 class Account(BaseModel):
     bohe_session_cookies: str = Field(default="", description="Bohe session cookies")
-    linux_do_connect_token: str = Field(
-        default="", description="Linux Do connect token"
-    )
-    linux_do_token: str = Field(default="", description="Linux Do token")
 
+    # extra="ignore" so legacy configs still carrying the removed linux_do_*
+    # fields parse without error instead of crashing on startup.
     model_config = {
-        "extra": "forbid",
+        "extra": "ignore",
         "str_strip_whitespace": True,
     }
 
@@ -79,7 +77,3 @@ def load_accounts() -> list[Account]:
         _write_accounts_to_file([])
 
     return accounts
-
-
-def save_accounts(accounts: list[Account]) -> None:
-    _write_accounts_to_file(accounts)

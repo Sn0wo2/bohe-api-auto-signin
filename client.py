@@ -1,15 +1,12 @@
-import asyncio
-import random
 from http import HTTPStatus
 
-from linux_do_connect import LinuxDoConnect
-
-from bohe_signin.client import BoheSignClient, OAuthError
+from bohe_signin.client import BoheSignClient
 from store.token import Account
 from utils.logger import setup_logger
 
-"""把额度同时格式化为 quota 与「次」，例如 150000 -> '150000quota(300times)'。"""
+
 def _fmt_quota(quota: int) -> str:
+    """把额度同时格式化为 quota 与「次」，例如 150000 -> '150000quota(300times)'。"""
     return f"{quota}quota({quota // 500}times)"
 
 
@@ -24,99 +21,22 @@ class BoheClient:
     def _tag(self) -> str:
         return f"[account{self.index + 1}] "
 
-    async def _get_connect_token(self, ld_token: str | None) -> tuple[str, str | None]:
-        if not ld_token:
-            raise ValueError("linux_do_token is required to refresh connect token")
-        self.logger.info(
-            f"{self._tag}Refreshing connect token with linux_do_token (len={len(ld_token)})"
-        )
-        connect = LinuxDoConnect(token=ld_token)
-        await connect.login()
-        self.logger.info(f"{self._tag}Successfully logged in to linux.do")
-
-        connect_token, _ = await connect.get_connect_token()
-        self.logger.info(
-            f"{self._tag}Successfully obtained connect token from linux.do"
-        )
-        return connect_token, ld_token
-
     async def authenticate(self) -> None:
         auth_token = self.account.bohe_session_cookies
-        connect_token = self.account.linux_do_connect_token
-        ld_token = self.account.linux_do_token
-
-        self.logger.debug(
-            f"{self._tag}Token state: auth_token={'set' if auth_token else 'empty'}, connect_token={'set' if connect_token else 'empty'}, ld_token={'set' if ld_token else 'empty'}"
-        )
-
-        if auth_token:
-            self.logger.info(
-                f"{self._tag}Verifying existing Bohe session (auth_token)..."
+        if not auth_token:
+            raise ValueError(
+                f"{self._tag}bohe_session_cookies is required "
+                "(OAuth refresh removed; set it manually)"
             )
-            self.signin_client.import_session_cookies(auth_token)
-            valid, _ = await self.signin_client.verify_session()
-            if valid:
-                self.logger.info(
-                    f"{self._tag}Existing Bohe session cookies are still valid"
-                )
-                return
-            self.logger.warning(
-                f"{self._tag}Stored auth_token is invalid/expired, attempting to refresh..."
+        self.logger.info(f"{self._tag}Verifying Bohe session...")
+        self.signin_client.import_session_cookies(auth_token)
+        valid, _ = await self.signin_client.verify_session()
+        if not valid:
+            raise RuntimeError(
+                f"{self._tag}Bohe session invalid or expired; "
+                "please manually update bohe_session_cookies"
             )
-
-        for attempt in range(1, 4):
-            try:
-                if attempt > 1:
-                    self.logger.info(
-                        f"{self._tag}Retrying Bohe session refresh (attempt {attempt}/3)..."
-                    )
-
-                if not connect_token:
-                    self.logger.debug(
-                        f"{self._tag}No connect_token available, refreshing from linux_do_token"
-                    )
-                    connect_token, ld_token = await self._get_connect_token(ld_token)
-                else:
-                    self.logger.debug(f"{self._tag}Reusing existing connect_token")
-
-                await self.signin_client.authenticate(connect_token)
-
-                bohe_session_cookies = self.signin_client.export_session_cookies()
-                if not bohe_session_cookies:
-                    raise RuntimeError("Server returned no Bohe session cookies")
-
-                self.account.bohe_session_cookies = bohe_session_cookies
-                self.account.linux_do_connect_token = connect_token or ""
-                self.account.linux_do_token = ld_token or ""
-                self.logger.info(f"{self._tag}Successfully obtained auth_token")
-                return
-            except OAuthError as e:
-                self.logger.warning(f"{self._tag}OAuth failed: status={e.status_code}")
-                if e.status_code == 429:
-                    if attempt == 3:
-                        self.logger.error(
-                            f"{self._tag}All 3 attempts failed (rate limited). Giving up."
-                        )
-                        raise
-                    backoff = min(
-                        600, 60 * (2 ** (attempt - 1)) + random.uniform(0, 30)
-                    )
-                    self.logger.warning(
-                        f"{self._tag}Rate limited on attempt {attempt}. Backing off {backoff:.0f}s before retry..."
-                    )
-                    await asyncio.sleep(backoff)
-                else:
-                    raise
-            except Exception:
-                self.logger.warning(
-                    f"{self._tag}Bohe session refresh attempt {attempt} failed",
-                    exc_info=True,
-                )
-                if attempt == 3:
-                    self.logger.error(
-                        f"{self._tag}All 3 attempts to refresh Bohe session failed."
-                    )
-                    raise
+        self.logger.info(f"{self._tag}Bohe session cookies are valid")
 
     async def signin(self) -> bool:
         try:

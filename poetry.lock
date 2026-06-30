@@ -164,21 +164,6 @@ extra = ["lxml_html_clean", "markdownify (>=1.1.0)", "readability-lxml (>=0.8.1)
 test = ["charset_normalizer (>=3.3.2,<4.0)", "cryptography (>=46.0.4,<47.0)", "httpx (==0.23.1)", "litestar (>=2.19.0,<3.0)", "proxy.py (>=2.4.3,<3.0)", "pytest (>=8.1.1,<9.0)", "pytest-asyncio (>=0.23.6,<1.0)", "pytest-trio (>=0.8.0,<1.0)", "python-multipart (>=0.0.9,<1.0)", "trio (>=0.25.0,<1.0)", "trustme (>=1.1.0,<2.0)", "typing_extensions", "uvicorn (>=0.29.0,<1.0)", "websockets (>=14.0)"]
 
 [[package]]
-name = "linux-do-connect-token"
-version = "0.1.1"
-description = "A helper library to authenticate with connect.linux.do and retrieve auth.session-token"
-optional = false
-python-versions = ">=3.12"
-groups = ["main"]
-files = [
-    {file = "linux_do_connect_token-0.1.1-py3-none-any.whl", hash = "sha256:0bcea82f2e521d6504d2fe0224fb7b20b0041c52a9fc82767216222bdd100538"},
-    {file = "linux_do_connect_token-0.1.1.tar.gz", hash = "sha256:98d0d8c83911ee8809e6cbd2698f5686d002709ec5b47ebeab51be586999dc20"},
-]
-
-[package.dependencies]
-curl-cffi = "*"
-
-[[package]]
 name = "markdown-it-py"
 version = "4.2.0"
 description = "Python port of markdown-it. Markdown parsing, done right!"
@@ -446,4 +431,4 @@ typing-extensions = ">=4.12.0"
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.12"
-content-hash = "d9581126e4f09821bbce3d19ee9283989c9087a1979c02884ecfc1dfa5f3454f"
+content-hash = "4fd3f63c42ba123169b8250166eaabc47e32cae7ff708b6ea8c90d8c97e96aca"
