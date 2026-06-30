@@ -27,33 +27,6 @@ jobs:
       - name: Install dependencies
         run: poetry install --no-root
       - name: Run signin script
-        id: run_script
         env:
           BOHE_ACCOUNTS: ${{ secrets.BOHE_ACCOUNTS }}
         run: poetry run python main.py
-      - name: Update Tokens to Secrets
-        if: always()
-        env:
-          GH_TOKEN: ${{ github.token }}
-          SYNC_REPOS: ${{ secrets.SYNC_REPOS }}
-        run: |
-          if [ -f ".data/token.json" ] && [ ! -z "$GH_TOKEN" ]; then
-            echo "Token update detected, reading new tokens..."
-            BOHE_ACCOUNTS=$(poetry run python -c "import json; print(json.dumps(json.load(open('.data/token.json')).get('accounts', []), ensure_ascii=False))")
-
-            if [ "$BOHE_ACCOUNTS" != "[]" ]; then
-              echo "Updating current repository secrets..."
-              gh secret set BOHE_ACCOUNTS --body "$BOHE_ACCOUNTS"
-
-              if [ ! -z "$SYNC_REPOS" ]; then
-                IFS=',' read -ra ADDR <<< "$SYNC_REPOS"
-                for repo in "${ADDR[@]}"; do
-                  repo=$(echo $repo | xargs)
-                  if [ ! -z "$repo" ]; then
-                    echo "Syncing tokens to remote repository: $repo..."
-                    gh secret set BOHE_ACCOUNTS --repo "$repo" --body "$BOHE_ACCOUNTS"
-                  fi
-                done
-              fi
-            fi
-          fi
